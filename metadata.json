@@ -1,0 +1,10 @@
+{
+  "name": "Jelajah Pramuka: Misi Penjelajah",
+  "description": "Game edukatif kepramukaan interaktif untuk SD Negeri 1 Loloan Timur: pecahkan sandi, temukan petunjuk QR Code, dan taklukkan tantangan pos petualangan.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "CAMERA"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
