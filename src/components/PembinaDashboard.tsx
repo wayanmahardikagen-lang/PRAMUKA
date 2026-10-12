@@ -4,7 +4,7 @@ import {
   Settings, QrCode, Download, Printer, Plus, Trash2, Edit3, 
   RotateCcw, FileSpreadsheet, Lock, Unlock, Eye, Check, AlertTriangle, 
   Users, Award, Sparkles, BookOpen, Layers, Shield, RefreshCw,
-  FileCode, Copy, CheckCircle2, ListOrdered
+  FileCode, Copy, CheckCircle2, ListOrdered, LogOut
 } from 'lucide-react';
 import { ScoutPost, Challenge, GameSettings, LeaderboardEntry } from '../types';
 import { sound } from '../utils/audio';
@@ -42,6 +42,16 @@ export const PembinaDashboard: React.FC<PembinaDashboardProps> = ({
   const [pinError, setPinError] = useState('');
   const [resetNotice, setResetNotice] = useState('');
   const [challengeNotice, setChallengeNotice] = useState('');
+
+  // Custom confirmation modal (replaces browser confirm() which fails in iframes)
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel: string;
+    confirmVariant: 'danger' | 'warning';
+    onConfirm: () => void;
+  } | null>(null);
 
   // Active Tab in Dashboard
   const [activeTab, setActiveTab] = useState<'overview' | 'qr_generator' | 'question_bank' | 'settings'>('overview');
@@ -156,25 +166,41 @@ export const PembinaDashboard: React.FC<PembinaDashboardProps> = ({
 
   // Delete challenge
   const handleDeleteChallenge = (id: string) => {
-    if (confirm('Yakin ingin menghapus soal ini dari bank materi?')) {
-      sound.playClick();
-      const updated = challenges.filter(c => c.id !== id);
-      onUpdateChallenges(updated);
-      setChallengeNotice('Soal berhasil dihapus.');
-      setTimeout(() => setChallengeNotice(''), 4000);
-    }
+    sound.playClick();
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Soal dari Bank Materi?',
+      message: 'Soal ini akan dihapus dari daftar tantangan pos penjelajah.',
+      confirmLabel: 'Ya, Hapus Soal',
+      confirmVariant: 'danger',
+      onConfirm: () => {
+        sound.playClick();
+        const updated = challenges.filter(c => c.id !== id);
+        onUpdateChallenges(updated);
+        setChallengeNotice('Soal berhasil dihapus dari bank materi.');
+        setTimeout(() => setChallengeNotice(''), 4000);
+      },
+    });
   };
 
   // Reset to default challenges
   const handleResetToDefaultChallenges = () => {
-    if (confirm('YAKIN INGIN MEMUAT ULANG SOAL DARI SISTEM?\n\nSemua soal akan diperbarui kembali ke bank soal standar kepramukaan (7 pos). Perubahan manual sebelumnya akan digantikan.')) {
-      sound.playSuccess();
-      if (onResetChallengesToDefault) {
-        onResetChallengesToDefault();
-      }
-      setChallengeNotice('Berhasil! Seluruh soal telah dimuat ulang ke versi terbaru dari sistem.');
-      setTimeout(() => setChallengeNotice(''), 5000);
-    }
+    sound.playClick();
+    setConfirmModal({
+      isOpen: true,
+      title: 'Muat Ulang Soal Standar?',
+      message: 'Semua soal akan diperbarui kembali ke bank soal standar kepramukaan (7 pos lengkap). Perubahan manual sebelumnya akan digantikan.',
+      confirmLabel: 'Ya, Muat Ulang Soal',
+      confirmVariant: 'warning',
+      onConfirm: () => {
+        sound.playSuccess();
+        if (onResetChallengesToDefault) {
+          onResetChallengesToDefault();
+        }
+        setChallengeNotice('Berhasil! Seluruh soal telah dimuat ulang ke versi standar dari sistem.');
+        setTimeout(() => setChallengeNotice(''), 5000);
+      },
+    });
   };
 
   // Open JSON import/export modal
@@ -293,10 +319,12 @@ export const PembinaDashboard: React.FC<PembinaDashboardProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onBackToApp}
-            className="text-xs text-stone-400 hover:text-white underline"
+            className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-300 font-bold text-xs border border-stone-700 flex items-center justify-center gap-2 transition-colors active:scale-95 shadow"
           >
-            Kembali ke Halaman Siswa
+            <LogOut className="w-3.5 h-3.5 text-red-400" />
+            <span>Keluar ke Aplikasi Awal</span>
           </button>
         </div>
       </div>
@@ -328,16 +356,31 @@ export const PembinaDashboard: React.FC<PembinaDashboardProps> = ({
 
         <div className="flex items-center gap-2 w-full md:w-auto">
           <button
+            onClick={() => {
+              sound.playClick();
+              setIsAuthenticated(false);
+              onBackToApp();
+            }}
+            className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-200 text-xs font-bold border border-red-800 transition-colors flex items-center justify-center gap-1.5 shadow active:scale-95"
+            title="Keluar dari Panel Pembina dan kembali ke Aplikasi Awal"
+          >
+            <LogOut className="w-3.5 h-3.5 text-red-400" />
+            <span>Keluar ke Aplikasi Awal</span>
+          </button>
+          <button
             onClick={onBackToApp}
             className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold border border-stone-700 transition-colors"
           >
             Halaman Siswa
           </button>
           <button
-            onClick={() => setIsAuthenticated(false)}
-            className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-200 text-xs font-bold border border-red-800 transition-colors"
+            onClick={() => {
+              sound.playClick();
+              setIsAuthenticated(false);
+            }}
+            className="flex-1 md:flex-none px-3 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-300 text-xs font-bold border border-stone-800 transition-colors"
           >
-            Kunci Dashboard
+            Kunci PIN
           </button>
         </div>
       </div>
@@ -926,14 +969,22 @@ export const PembinaDashboard: React.FC<PembinaDashboardProps> = ({
             <button
               type="button"
               onClick={() => {
-                if (confirm(`YAKIN INGIN MENGHAPUS SEMUA HASIL?\n\nSebanyak ${leaderboard.length} data skor kelompok dan individu akan dihapus dari papan peringkat.`)) {
-                  sound.playSuccess();
-                  onClearLeaderboard();
-                  setResetNotice(`Berhasil! Seluruh ${leaderboard.length} data hasil kelompok dan individu telah dihapus.`);
-                  setTimeout(() => setResetNotice(''), 5000);
-                }
+                sound.playClick();
+                setConfirmModal({
+                  isOpen: true,
+                  title: 'Hapus Semua Hasil Kelompok & Individu?',
+                  message: `Sebanyak ${leaderboard.length} data skor kelompok dan individu akan dihapus permanen dari papan peringkat. Tindakan ini tidak dapat dibatalkan.`,
+                  confirmLabel: `Ya, Hapus Semua (${leaderboard.length} Data)`,
+                  confirmVariant: 'danger',
+                  onConfirm: () => {
+                    sound.playSuccess();
+                    onClearLeaderboard();
+                    setResetNotice(`Berhasil! Seluruh ${leaderboard.length} data hasil kelompok dan individu telah dihapus.`);
+                    setTimeout(() => setResetNotice(''), 5000);
+                  },
+                });
               }}
-              className="px-4 py-2.5 rounded-xl bg-red-700 hover:bg-red-600 text-white font-bold text-xs flex items-center gap-2 transition-colors shadow"
+              className="px-4 py-2.5 rounded-xl bg-red-700 hover:bg-red-600 text-white font-bold text-xs flex items-center gap-2 transition-colors shadow active:scale-95"
             >
               <Trash2 className="w-4 h-4" />
               <span>Hapus Semua Hasil Kelompok & Individu ({leaderboard.length} Data)</span>
@@ -952,14 +1003,22 @@ export const PembinaDashboard: React.FC<PembinaDashboardProps> = ({
             <button
               type="button"
               onClick={() => {
-                if (confirm('Yakin ingin mereset sesi aktif siswa di perangkat ini?')) {
-                  sound.playClick();
-                  onResetSession();
-                  setResetNotice('Sesi aktif siswa berhasil di-reset.');
-                  setTimeout(() => setResetNotice(''), 4000);
-                }
+                sound.playClick();
+                setConfirmModal({
+                  isOpen: true,
+                  title: 'Reset Sesi Siswa Aktif?',
+                  message: 'Mengeluarkan akun siswa/regu yang sedang aktif di perangkat ini dan menyiapkan form pendaftaran baru.',
+                  confirmLabel: 'Ya, Reset Sesi Siswa',
+                  confirmVariant: 'warning',
+                  onConfirm: () => {
+                    sound.playClick();
+                    onResetSession();
+                    setResetNotice('Sesi aktif siswa berhasil di-reset.');
+                    setTimeout(() => setResetNotice(''), 4000);
+                  },
+                });
               }}
-              className="px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs flex items-center gap-1.5 transition-colors border border-stone-700"
+              className="px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs flex items-center gap-1.5 transition-colors border border-stone-700 active:scale-95"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Reset Sesi Siswa Aktif</span>
@@ -1300,6 +1359,61 @@ export const PembinaDashboard: React.FC<PembinaDashboardProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION MODAL (In-app, iframe-safe) */}
+      {confirmModal && confirmModal.isOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setConfirmModal(null)}
+        >
+          <div 
+            className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4 text-stone-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3.5">
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                confirmModal.confirmVariant === 'danger'
+                  ? 'bg-red-500/15 text-red-400 border border-red-500/30'
+                  : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+              }`}>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight">
+                  {confirmModal.title}
+                </h3>
+                <p className="text-xs text-stone-300 mt-1 leading-relaxed">
+                  {confirmModal.message}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-stone-800">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="py-2.5 px-4 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold text-xs transition-colors border border-stone-700"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(null);
+                }}
+                className={`py-2.5 px-4 rounded-xl font-bold text-xs transition-all shadow-md active:scale-95 ${
+                  confirmModal.confirmVariant === 'danger'
+                    ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-950/50'
+                    : 'bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-amber-950/50'
+                }`}
+              >
+                {confirmModal.confirmLabel}
+              </button>
+            </div>
           </div>
         </div>
       )}

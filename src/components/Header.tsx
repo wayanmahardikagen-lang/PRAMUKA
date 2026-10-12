@@ -135,6 +135,14 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Log Out</span>
               </button>
             </div>
+          ) : currentTab === 'pembina' ? (
+            <button
+              onClick={() => onNavigate('home')}
+              className="px-3 py-2 text-xs font-bold rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 transition-all whitespace-nowrap active:scale-95 shadow-sm flex items-center gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5 text-amber-400" />
+              <span>Keluar ke Beranda</span>
+            </button>
           ) : (
             <button
               onClick={() => onNavigate('home')}

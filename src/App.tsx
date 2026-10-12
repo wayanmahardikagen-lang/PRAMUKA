@@ -16,6 +16,7 @@ import { ChallengeModal } from './components/ChallengeModal';
 import { ResultView } from './components/ResultView';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { PembinaDashboard } from './components/PembinaDashboard';
+import { LogoutModal } from './components/LogoutModal';
 
 export default function App() {
   // Global Data State
@@ -36,6 +37,7 @@ export default function App() {
   const [targetPostForScanner, setTargetPostForScanner] = useState<ScoutPost | null>(null);
   const [activeChallengePost, setActiveChallengePost] = useState<ScoutPost | null>(null);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   // Sync Audio Mute
   useEffect(() => {
@@ -63,14 +65,23 @@ export default function App() {
     setCurrentTab('map');
   };
 
-  // Logout
-  const handleLogout = () => {
-    if (confirm('Keluar dari sesi permainan saat ini? Kemajuan lokalmu tetap tersimpan.')) {
-      sound.playClick();
-      setSession(null);
-      storage.saveSession(null);
-      setCurrentTab('home');
-    }
+  // Open Logout confirmation modal
+  const handleOpenLogout = () => {
+    sound.playClick();
+    setIsLogoutModalOpen(true);
+  };
+
+  // Perform actual Logout to initial app
+  const handleConfirmLogout = () => {
+    sound.playClick();
+    setSession(null);
+    storage.saveSession(null);
+    setActiveChallengePost(null);
+    setIsScannerOpen(false);
+    setIsLeaderboardOpen(false);
+    setIsLoginOpen(false);
+    setIsLogoutModalOpen(false);
+    setCurrentTab('home');
   };
 
   // Open QR Scanner
@@ -196,7 +207,7 @@ export default function App() {
         }}
         session={session}
         onOpenScanner={() => handleOpenScanner()}
-        onLogout={handleLogout}
+        onLogout={handleOpenLogout}
         isAudioMuted={isAudioMuted}
         onToggleAudio={handleToggleAudio}
       />
@@ -212,7 +223,7 @@ export default function App() {
             onOpenScanner={() => handleOpenScanner()}
             onNavigateMap={() => setCurrentTab('map')}
             onViewResult={() => setCurrentTab('result')}
-            onLogout={handleLogout}
+            onLogout={handleOpenLogout}
           />
         )}
 
@@ -335,6 +346,16 @@ export default function App() {
         <LeaderboardModal
           entries={leaderboard}
           onClose={() => setIsLeaderboardOpen(false)}
+        />
+      )}
+
+      {/* MODAL 5: Logout Confirmation Modal */}
+      {isLogoutModalOpen && (
+        <LogoutModal
+          isOpen={isLogoutModalOpen}
+          session={session}
+          onClose={() => setIsLogoutModalOpen(false)}
+          onConfirmLogout={handleConfirmLogout}
         />
       )}
     </div>
